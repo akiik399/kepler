@@ -3,7 +3,10 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException
 from graphiti_core import Graphiti
-from graphiti_core.search.search_config import SearchConfig
+from graphiti_core.search.search_config_recipes import COMBINED_HYBRID_SEARCH_CROSS_ENCODER as BASE_SEARCH
+
+SEARCH_CONFIG = BASE_SEARCH.model_copy(update={"limit": 50})
+_EMPTY_CONFIG = BASE_SEARCH.model_copy(update={"limit": 100})
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +25,7 @@ async def search(q: str = ""):
         raise HTTPException(status_code=503, detail="Graphiti not initialized")
     try:
         if q:
-            results = await graphiti.search_(q, config=SearchConfig(limit=50))
+            results = await graphiti.search_(q, config=SEARCH_CONFIG)
         else:
             return {"nodes": [], "edges": [], "total": 0}
 
@@ -55,8 +58,9 @@ async def explore(center: str = "", depth: int = 2):
     if graphiti is None:
         raise HTTPException(status_code=503, detail="Graphiti not initialized")
     try:
+        query = center if center else "agent"
         results = await graphiti.search_(
-            "", center_node_uuid=center or None, config=SearchConfig(limit=50)
+            query, center_node_uuid=center or None, config=SEARCH_CONFIG
         )
         nodes = [
             {
@@ -90,7 +94,7 @@ async def get_timeline(entity: str = ""):
         if not entity:
             return {"events": []}
 
-        results = await graphiti.search_(entity, config=SearchConfig(limit=20))
+        results = await graphiti.search_(entity, config=SEARCH_CONFIG)
         episodes = results.episodes if results.episodes else []
 
         events = [
@@ -113,7 +117,7 @@ async def get_node(node_id: str):
         raise HTTPException(status_code=503, detail="Graphiti not initialized")
     try:
         results = await graphiti.search_(
-            "", center_node_uuid=node_id, config=SearchConfig(limit=50)
+            node_id, center_node_uuid=node_id, config=SEARCH_CONFIG
         )
 
         node_data = None
@@ -149,11 +153,22 @@ async def get_node(node_id: str):
 
 @router.get("/stats")
 async def stats():
-    return {
-        "node_count": 0,
-        "edge_count": 0,
-        "last_update": datetime.now(timezone.utc).isoformat(),
-    }
+    if graphiti is None:
+        raise HTTPException(status_code=503, detail="Graphiti not initialized")
+    try:
+        # Use a broad search to get counts
+        results = await graphiti.search_("agent", config=_EMPTY_CONFIG)
+        return {
+            "node_count": len(results.nodes) if results.nodes else 0,
+            "edge_count": len(results.edges) if results.edges else 0,
+            "last_update": datetime.now(timezone.utc).isoformat(),
+        }
+    except Exception as e:
+        return {
+            "node_count": 0,
+            "edge_count": 0,
+            "last_update": datetime.now(timezone.utc).isoformat(),
+        }
 
 
 @router.get("/health")

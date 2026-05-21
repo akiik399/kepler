@@ -17,7 +17,7 @@ class HackerNewsScraper:
         async with httpx.AsyncClient() as client:
             resp = await client.get(f"{self.BASE_URL}/topstories.json", timeout=30)
             resp.raise_for_status()
-            story_ids = resp.json()[: self.config.hn_top_n]
+            story_ids = resp.json()[: self.config.hn_max_items]
 
             items: list[RawItem] = []
             for sid in story_ids:

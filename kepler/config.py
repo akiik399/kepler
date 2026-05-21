@@ -14,8 +14,8 @@ class Config:
     kuzu_db_path: str = field(default_factory=lambda: str(Path(os.getenv("KEPLER_DATA_DIR", "./data")) / "kuzu" / "kepler.db"))
 
     # Graphiti
-    graphiti_semaphore_limit: int = 5
-    graphiti_llm_model: str = "deepseek-chat"
+    graphiti_semaphore_limit: int = 10
+    graphiti_llm_model: str = "deepseek-v4-flash"
     graphiti_llm_temperature: float = 0.0
 
     # Embedding (local)
@@ -33,6 +33,8 @@ class Config:
     hn_top_n: int = 100
     hn_keywords: list[str] = field(default_factory=lambda: ["agent", "llm", "ai", "gpt", "claude", "reasoning", "tool"])
     arxiv_categories: list[str] = field(default_factory=lambda: ["cs.AI", "cs.CL", "cs.MA"])
+    arxiv_max_items: int = 10
+    hn_max_items: int = 15
     max_content_length: int = 50000
 
     def __post_init__(self):

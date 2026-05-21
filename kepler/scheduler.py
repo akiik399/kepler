@@ -31,9 +31,11 @@ async def daily_ingest(config: Config, graphiti: Graphiti):
     results = await asyncio.gather(
         *(s.fetch() for s in scrapers), return_exceptions=True
     )
-    for result in results:
+    for i, result in enumerate(results):
         if isinstance(result, Exception):
-            logger.warning("Scraper failed: %s", result)
+            logger.warning("Scraper %d failed: %s", i, result)
+        elif result is None:
+            logger.warning("Scraper %d returned None", i)
         else:
             all_items.extend(result)
 

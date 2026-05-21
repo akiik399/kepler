@@ -23,7 +23,7 @@ class ArxivScraper:
                     resp = await client.get(url, timeout=30, follow_redirects=True)
                     resp.raise_for_status()
                 feed = feedparser.parse(resp.text)
-                for entry in feed.entries:
+                for entry in feed.entries[:self.config.arxiv_max_items]:
                     items.append(
                         RawItem(
                             source="arxiv",
