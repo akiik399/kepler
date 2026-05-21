@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kepler — AI Agent 技术演进知识图谱</title>
+  <link rel="stylesheet" href="/style.css" />
+  <script src="https://unpkg.com/vis-network@9.1.9/standalone/umd/vis-network.min.js"></script>
+</head>
+<body>
+  <header class="app-header">
+    <h1>Kepler</h1>
+    <nav class="tabs">
+      <button class="active" data-view="graph">图谱</button>
+      <button data-view="timeline">时间线</button>
+      <button data-view="search">搜索</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- Graph View -->
+    <div id="graph-view" class="view active">
+      <div id="graph-container"></div>
+      <div id="graph-stats" class="graph-info">Loading...</div>
+    </div>
+
+    <!-- Timeline View -->
+    <div id="timeline-view" class="view">
+      <div class="timeline-controls">
+        <input
+          id="timeline-entity"
+          type="text"
+          placeholder="输入实体名称查看时间线..."
+        />
+      </div>
+      <div id="timeline-events" class="timeline">
+        <p style="color:#64748b">输入实体名称开始探索</p>
+      </div>
+    </div>
+
+    <!-- Search View -->
+    <div id="search-view" class="view">
+      <div class="search-box">
+        <input
+          id="search-input"
+          type="text"
+          placeholder="搜索技术、组织、论文..."
+        />
+      </div>
+      <div id="search-results" class="search-results"></div>
+    </div>
+  </main>
+
+  <script>
+    // Tab switching
+    document.querySelectorAll("[data-view]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll("[data-view]").forEach((b) => b.classList.remove("active"));
+        document.querySelectorAll(".view").forEach((v) => v.classList.remove("active"));
+        btn.classList.add("active");
+        document.getElementById(`${btn.dataset.view}-view`).classList.add("active");
+      });
+    });
+
+    // Search
+    document.getElementById("search-input").addEventListener("keydown", async (e) => {
+      if (e.key === "Enter" && e.target.value.trim()) {
+        const q = e.target.value.trim();
+        const container = document.getElementById("search-results");
+        container.innerHTML = "<p style='color:#64748b'>Searching...</p>";
+        try {
+          const resp = await fetch(`/api/graph/search?q=${encodeURIComponent(q)}`);
+          const data = await resp.json();
+          if (data.nodes && data.nodes.length > 0) {
+            container.innerHTML = data.nodes.map((n) => `
+              <div class="search-result-item" onclick="switchToGraph()">
+                <h3>${n.name || n.title || "Unknown"}</h3>
+                <p>${n.summary || n.type || ""}</p>
+              </div>
+            `).join("");
+          } else {
+            container.innerHTML = "<p style='color:#64748b'>No results found.</p>";
+          }
+        } catch (err) {
+          container.innerHTML = "<p style='color:#ef4444'>Search failed.</p>";
+        }
+      }
+    });
+
+    function switchToGraph() {
+      document.querySelector('[data-view="graph"]').click();
+    }
+  </script>
+  <script src="/graph.js"></script>
+  <script src="/timeline.js"></script>
+</body>
+</html>
